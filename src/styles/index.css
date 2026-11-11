@@ -4,18 +4,19 @@
 
 :root {
   color-scheme: dark;
-}
-
-html,
-body,
-#root {
-  height: 100%;
+  font-family: Inter, system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  background: #0b1020;
 }
 
 body {
+  min-width: 320px;
+  min-height: 100vh;
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(109, 124, 255, 0.18), transparent 40%),
-    radial-gradient(circle at 80% 10%, rgba(139, 155, 255, 0.12), transparent 35%), #0b1020;
+}
+
+button,
+input {
+  font: inherit;
 }
