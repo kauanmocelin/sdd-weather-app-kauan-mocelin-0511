@@ -2,7 +2,7 @@
 
 # SDD Weather App
 
-### Treinamento hands-on de **Spec-Driven Development** com **GitHub Copilot**
+###  Treinamento hands-on de **Spec-Driven Development** com **GitHub Copilot**
 
 **Brief → Spec → Plan → Tasks → Code → Test → Review → Ship**
 
