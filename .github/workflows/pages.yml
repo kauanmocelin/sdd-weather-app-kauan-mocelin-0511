@@ -31,10 +31,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/app/
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site/app _site/workshop
+          cp -R docs/. _site/
+          cp -R dist/. _site/app/
+          cp -R workshop/. _site/workshop/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: _site
 
   deploy:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
