@@ -20,15 +20,15 @@ O MVP é uma aplicação web responsiva, em português do Brasil, que usa a Open
 
 | ID | Requisito | Prioridade | Definição |
 |---|---|---|---|
-| RF01 | Busca de cidades | Must | Permitir busca global por nome de cidade usando geocoding Open-Meteo, com entrada mínima de dois caracteres. Apresentar até 10 sugestões, localizadas em português quando disponível. Cada resultado identifica nome, região administrativa e país. Não aceitar CEP nem coordenadas como consultas no MVP. |
+| RF01 | Busca de cidades | Must | Permitir busca global por nome de cidade usando geocoding Open-Meteo. Remover espaços externos antes de validar; exigir pelo menos dois caracteres após essa normalização; preservar letras Unicode, diacríticos, espaços internos, apóstrofos e hífens como texto literal. Apresentar até 10 sugestões, localizadas em português quando disponível. Cada resultado identifica nome, região administrativa e país, quando fornecidos. Não aceitar CEP nem coordenadas como consultas no MVP. |
 | RF02 | Seleção de cidade | Must | Permitir seleção explícita de um resultado e carregar os dados climáticos da localização correspondente. Nunca selecionar automaticamente o primeiro resultado. |
-| RF03 | Clima atual | Must | Exibir para a cidade selecionada a temperatura atual e a condição do tempo, representada por descrição em pt-BR e ícone correspondente ao código WMO. |
-| RF04 | Previsão de cinco dias | Must | Exibir hoje e os quatro dias seguintes. Para cada dia, apresentar data, temperatura máxima, mínima e condição predominante. Usar as datas e o fuso horário informados para a cidade pela fonte de dados. |
-| RF05 | Alternância de unidade | Must | Permitir alternar entre °C e °F. Aplicar a unidade selecionada a todos os valores de temperatura, sem nova consulta ao provedor. |
-| RF06 | Estados da interface | Must | Comunicar estados de carregamento, erro e vazio para busca e consulta climática. Mensagens devem ser claras e em pt-BR. Falha de rede ou provedor não deve deixar a interface quebrada. |
-| RF07 | Tentar novamente | Must | Em estado de erro, disponibilizar ação explícita para repetir a operação que falhou. A ação de tentar novamente é distinta da atualização manual disponível no caminho de sucesso. |
-| RF08 | Persistência local | Must | Persistir no dispositivo a unidade escolhida, a última cidade selecionada e dados de forecast/geocoding com timestamp. Ao retornar, restaurar a unidade e a última cidade. Permitir exibir a última previsão em cache, inclusive offline, com indicação de quando foi atualizada. |
-| RF09 | Sugestões de busca | Should | Atualizar sugestões enquanto o usuário digita, sem exigir submissão manual. A consulta deve aguardar cerca de 300 ms após a última digitação, iniciar somente com pelo menos dois caracteres e descartar resultados de consultas anteriores que já não correspondam ao texto atual. |
+| RF03 | Clima atual | Must | Exibir para a cidade selecionada temperatura e condição, com descrição pt-BR e ícone correspondente ao código WMO. Identificar a fonte e distinguir o horário de referência dos dados do horário em que foram obtidos; usar o fuso da cidade. Dados em cache devem ser identificados como desatualizados e mostrar quando foram obtidos. |
+| RF04 | Previsão de cinco dias | Must | Exibir hoje e os quatro dias seguintes, segundo as datas e o fuso da cidade fornecidos pela fonte. Cada dia deve conter data, máxima, mínima e a condição diária fornecida pela fonte. O forecast é completo somente quando há cinco datas consecutivas e máximas/mínimas numéricas para cada dia. |
+| RF05 | Alternância de unidade | Must | Permitir alternar entre °C e °F sem nova consulta ao provedor. Normalizar os valores de origem em Celsius; converter pela fórmula °F = (°C × 9/5) + 32 e arredondar para o inteiro mais próximo somente na apresentação. |
+| RF06 | Estados da interface | Must | Comunicar carregamento, vazio e erro separadamente para busca de cidades e consulta climática. Mensagens devem ser claras e em pt-BR. Uma falha de rede ou provedor não deve deixar a interface quebrada nem substituir dados válidos por valores inválidos. |
+| RF07 | Tentar novamente | Must | Em erro recuperável, disponibilizar ação explícita para repetir a mesma operação com os mesmos parâmetros. Distinguir essa ação da atualização manual disponível após sucesso. Para HTTP 429, realizar no máximo uma repetição automática após o intervalo válido informado por `Retry-After`; sem intervalo válido, oferecer apenas a repetição manual. |
+| RF08 | Persistência local | Must | Persistir no dispositivo unidade, última cidade selecionada e respostas válidas de forecast/geocoding com horário de obtenção. Cache com menos de 10 minutos pode ser reutilizado; com 10 minutos ou mais, deve ser atualizado quando houver conexão. Em falha ou offline, manter o último forecast válido, identificá-lo como desatualizado e mostrar seu horário de obtenção. |
+| RF09 | Sugestões de busca | Should | Atualizar sugestões sem submissão manual, após 300 ms sem alteração do texto e somente com pelo menos dois caracteres após remoção dos espaços externos. Não deixar respostas antigas substituir resultados do texto atual. |
 
 ## User Stories
 
@@ -64,7 +64,7 @@ Cada critério abaixo segue o formato Dado/Quando/Então, é verificável e refe
 
 ### US03 / RF03 — Clima atual
 
-- **AC03.1** **Dado** que há uma resposta válida de clima atual para a cidade selecionada, **Quando** a área de clima atual é exibida, **Então** ela apresenta a temperatura e a descrição da condição em pt-BR.
+- **AC03.1** **Dado** que há uma resposta de clima atual para a cidade selecionada, **Quando** a área de clima atual é exibida, **Então** ela apresenta a temperatura e a descrição da condição em pt-BR; valores meteorológicos nulos ou ausentes aparecem como “—” ou “Condição indisponível”.
 - **AC03.2** **Dado** que o código WMO está listado na tabela desta especificação, **Quando** a condição atual ou diária é apresentada, **Então** a descrição e a categoria de ícone correspondem ao mapeamento desse código.
 - **AC03.3** **Dado** que o código WMO não consta na tabela, **Quando** a condição é apresentada, **Então** aparece “Condição indisponível” com ícone neutro e a tela continua utilizável.
 - **AC03.4** **Dado** que há uma resposta válida de clima atual, **Quando** os dados atuais são apresentados, **Então** sensação térmica, umidade, vento e índice UV não são exibidos.
@@ -72,7 +72,7 @@ Cada critério abaixo segue o formato Dado/Quando/Então, é verificável e refe
 ### US04 / RF04 — Previsão
 
 - **AC04.1** **Dado** que há uma resposta válida de forecast para uma cidade, **Quando** a previsão diária é exibida, **Então** ela contém cinco datas consecutivas: hoje na cidade e os quatro dias seguintes.
-- **AC04.2** **Dado** que há uma previsão diária válida, **Quando** qualquer um dos cinco dias é apresentado, **Então** esse dia exibe data, temperatura máxima, temperatura mínima e condição predominante.
+- **AC04.2** **Dado** que há uma previsão diária válida, **Quando** qualquer um dos cinco dias é apresentado, **Então** esse dia exibe data, temperatura máxima, temperatura mínima e condição predominante; valores meteorológicos nulos ou ausentes são apresentados como “—”, sem inferir ou inventar valores.
 - **AC04.3** **Dado** que a cidade tem um fuso horário diferente do dispositivo, **Quando** a previsão é apresentada, **Então** os dias correspondem às datas retornadas para o fuso da cidade.
 - **AC04.4** **Dado** que há uma resposta diária válida com os cinco dias requeridos, **Quando** a previsão é carregada, **Então** os dados horários não são necessários para apresentar os critérios definidos em AC04.1 e AC04.2.
 
@@ -90,7 +90,7 @@ Cada critério abaixo segue o formato Dado/Quando/Então, é verificável e refe
 - **AC06.3** **Dado** que uma consulta falha por ausência de conexão, **Quando** a falha é apresentada, **Então** a mensagem exibida é “Você está sem conexão. Verifique sua internet.”.
 - **AC06.4** **Dado** que uma consulta permanece sem resposta por 10 segundos, **Quando** o limite de timeout é atingido, **Então** a consulta é interrompida e a mensagem exibida é “O serviço de clima está demorando a responder.”.
 - **AC06.5** **Dado** que a API retorna HTTP 4xx ou 5xx, exceto HTTP 429, **Quando** a falha é apresentada, **Então** a mensagem exibida é “Não foi possível obter os dados do clima agora.”.
-- **AC06.6** **Dado** que a API retorna conteúdo JSON inválido ou incompatível com o contrato esperado, **Quando** a resposta é tratada, **Então** a mensagem exibida é “Recebemos dados inesperados do serviço de clima.” e nenhum valor inválido é apresentado como previsão.
+- **AC06.6** **Dado** que a API retorna conteúdo JSON inválido, estrutura incompatível ou valor meteorológico de tipo inválido, **Quando** a resposta é tratada, **Então** a mensagem exibida é “Recebemos dados inesperados do serviço de clima.” e nenhum valor inválido é apresentado como previsão. Valores meteorológicos nulos ou ausentes são tratados como indisponíveis e apresentados como “—”.
 - **AC06.7** **Dado** que há uma previsão válida em cache e uma falha ao atualizar, **Quando** a aplicação apresenta o resultado, **Então** mostra a previsão em cache, seu horário de atualização e o aviso de falha.
 - **AC06.8** **Dado** que uma consulta de forecast falha e não há forecast em cache, **Quando** o estado final é exibido, **Então** a interface mostra o estado de erro sem apresentar dados climáticos inventados.
 
@@ -118,6 +118,22 @@ Cada critério abaixo segue o formato Dado/Quando/Então, é verificável e refe
 - **AC09.1** **Dado** que o campo contém pelo menos dois caracteres, **Quando** a pessoa para de digitar, **Então** a consulta de sugestões é enviada após 300 ms sem novas alterações no texto.
 - **AC09.2** **Dado** que uma consulta de sugestões está em andamento, **Quando** o texto muda antes de sua resposta, **Então** os resultados dessa consulta antiga não substituem as sugestões correspondentes ao texto atual.
 - **AC09.3** **Dado** que sugestões de cidade estão visíveis, **Quando** a pessoa seleciona uma delas, **Então** a cidade é selecionada sem exigir submissão de formulário separado.
+
+## Matriz de Rastreabilidade
+
+Cada linha liga uma User Story ao requisito funcional, aos critérios de aceite que a verificam e aos requisitos não funcionais aplicáveis. O RNF07 (testabilidade) aplica-se transversalmente a todos os critérios e, por isso, não é repetido em cada linha.
+
+| User Story | Requisito funcional | Acceptance Criteria | Requisitos não funcionais relevantes |
+|---|---|---|---|
+| US01 — Buscar cidade | RF01 | AC01.1–AC01.5 | RNF01 (desempenho de busca), RNF02 (responsividade), RNF03 (acessibilidade), RNF05 (compatibilidade), RNF09 (localização), RNF13 (eficiência de rede), RNF14 (performance percebida) |
+| US02 — Distinguir e selecionar cidade | RF02 | AC02.1–AC02.3 | RNF02 (responsividade), RNF03 (acessibilidade), RNF04 (confiabilidade), RNF05 (compatibilidade), RNF09 (localização) |
+| US03 — Consultar clima atual | RF03 | AC03.1–AC03.4 | RNF03 (acessibilidade), RNF05 (compatibilidade), RNF09 (localização), RNF10 (apresentação visual) |
+| US04 — Consultar previsão de cinco dias | RF04 | AC04.1–AC04.4 | RNF03 (acessibilidade), RNF05 (compatibilidade), RNF09 (localização), RNF10 (apresentação visual), RNF14 (performance percebida) |
+| US05 — Alternar unidade | RF05 | AC05.1–AC05.4 | RNF03 (acessibilidade), RNF05 (compatibilidade), RNF09 (localização) |
+| US06 — Entender estados da interface | RF06 | AC06.1–AC06.8 | RNF03 (acessibilidade), RNF04 (confiabilidade), RNF05 (compatibilidade), RNF09 (localização), RNF11 (continuidade), RNF12 (observabilidade) |
+| US07 — Tentar novamente | RF07 | AC07.1–AC07.5 | RNF03 (acessibilidade), RNF04 (confiabilidade), RNF05 (compatibilidade), RNF12 (observabilidade) |
+| US08 — Restaurar cidade, unidade e cache | RF08 | AC08.1–AC08.8 | RNF04 (confiabilidade), RNF05 (compatibilidade), RNF08 (segurança e privacidade), RNF09 (localização), RNF11 (continuidade), RNF13 (eficiência de rede) |
+| US09 — Ver sugestões enquanto digita | RF09 | AC09.1–AC09.3 | RNF01 (desempenho de busca), RNF02 (responsividade), RNF03 (acessibilidade), RNF05 (compatibilidade), RNF09 (localização), RNF13 (eficiência de rede), RNF14 (performance percebida) |
 
 ## Non-Functional Requirements
 
@@ -154,7 +170,7 @@ Cada critério abaixo segue o formato Dado/Quando/Então, é verificável e refe
 | Respostas de busca chegam fora de ordem | Ignorar resposta obsoleta que não corresponda ao texto atual. |
 | Pessoa troca de cidade enquanto uma requisição está em andamento | Não permitir que a resposta atrasada da cidade anterior substitua a cidade atualmente selecionada. |
 | Código WMO desconhecido | Mostrar descrição genérica de condição indisponível e ícone neutro, mantendo temperatura e previsão disponíveis. |
-| Dia ou valor ausente em resposta de forecast | Tratar como resposta inválida/incompleta; não preencher valores ausentes por inferência. Mostrar erro ou estado parcial apenas se os valores restantes forem confiáveis e identificados. |
+| Data ausente/inválida ou sequência diária incompleta | Tratar como resposta inválida; não inventar datas. Valores meteorológicos nulos/ausentes em datas válidas são apresentados como “—”; valores de tipo inválido resultam em erro. |
 | Preferências ausentes ou ilegíveis no armazenamento local | Usar Celsius e estado sem cidade selecionada; permitir continuar sem falha da aplicação. |
 | Armazenamento local indisponível ou cheio | A consulta online deve continuar utilizável durante a sessão; avisar de forma não bloqueante que preferências/cache podem não persistir. |
 | Usuário nega permissões do navegador | Nenhuma permissão de geolocalização é solicitada pelo MVP. |
